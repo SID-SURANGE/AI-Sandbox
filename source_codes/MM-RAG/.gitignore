@@ -45,4 +45,5 @@ data/
 
 # Others
 TBD/
+chromadb/
 password_hash.py

@@ -1,5 +1,5 @@
 # Standard library imports
-
+import logging
 # Third party imports
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -18,20 +18,58 @@ class Query(BaseModel):
 
 
 @router.post("/ask-barista-bot")
-def process_barista_query(user_query: Query) -> JSONResponse:
+async def process_barista_query(user_query: Query) -> JSONResponse:
     """
-    print(f'user query: {uquery}')
-        query (Query): The query object containing the user query string.
+    Process a user query and return a contextualized response.
+
+    Args:
+        user_query (Query): The query object containing the user's question.
 
     Returns:
-        JSONResponse: The response containing the result of the query.
+        JSONResponse: The response containing the answer or error message.
+
+    Raises:
+        HTTPException: If the query is empty or invalid.
     """
-    uquery = user_query.query
-    print(f"user query: {uquery}")
-    if uquery is None:
-        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    try:
+        # Input validation
+        query_text = user_query.query.strip()
+        if not query_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Query cannot be empty"
+            )
 
-    # fetch relevant response for the query
-    response = get_contextualized_llm_response(uquery)
+        # Log incoming query for debugging
+        logging.info(f"Processing query: {query_text}")
 
-    return JSONResponse(content={"response": response})
+        # Get response from LLM
+        response = await get_contextualized_llm_response(query_text)
+        
+        return JSONResponse(
+            content={
+                "status": "success",
+                "response": response,
+                "data": {
+                    "query": query_text,
+                }
+            },
+            status_code=200
+        )
+
+    except HTTPException as he:
+        # Re-raise HTTP exceptions for proper error handling
+        raise he
+
+    except Exception as e:
+        # Log the full error for debugging
+        logging.error(f"Error processing query: {str(e)}", exc_info=True)
+        
+        return JSONResponse(
+            content={
+                "status": "error",
+                "response": "An error occurred while processing your request",
+                "error_type": "internal_server_error"
+            },
+            status_code=500
+        )

@@ -2,6 +2,22 @@
 Overview:<br>
 Barista Bot is a chatbot that can answer questions about the menu and train baristas on the coffee recipes.
 
+## Tech Stack
+<table>
+    <tr>
+        <th>Frontend</th>
+        <th>Backend</th>
+        <th>LLM</th>
+        <th>Vector Database</th>
+    </tr>
+    <tr>
+        <td>Streamlit</td>
+        <td>FastAPI</td>
+        <td>Hermes-Llama-3.2-3b-instruct</td>
+        <td>ChromaDB</td>
+    </tr>
+</table>
+
 ## App Setup
 ### Git clone
 ```bash
@@ -45,10 +61,13 @@ python main.py
 ## First Run
 Populate the vector database by uploading data to `data/` folder.
 Below are the steps to do so:
-1. Upload data to `data/` folder.
-2. On the UI, select Admin mode and add correct credentials.
+1. By default when app loads, it will be in USER mode.
+2. On the UI, select Admin mode and add correct credentials (Password: `pass1234`).
 3. Once approved, upload the required files from the upload section.
 4. Once uploaded, the data will be processed and stored in the vector database.
 5. Once the data is processed, you can query the data using the search bar.
 
 For subsequent runs, you can skip the admin mode and directly upload the data in USER mode.
+
+
+

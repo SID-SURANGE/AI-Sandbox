@@ -1,0 +1,4 @@
+streamlit
+llama-index
+chromadb
+spacy>=3.7.2

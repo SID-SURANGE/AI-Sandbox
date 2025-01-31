@@ -1,5 +1,5 @@
 # Standard library imports
-import os
+import os, time
 from typing import List, Tuple, Optional
 
 # Third-party library imports
@@ -11,9 +11,6 @@ import whisper
 
 # Local/application imports
 from utils.config import (
-    collection,
-    text_splitter,
-    FIXED_DIMENSION,
     text_model,
     image_model
 )
@@ -53,20 +50,19 @@ def extract_frames(
     return frames
 
 
-def extract_audio_and_transcribe(video_path: str) -> str:
+def extract_audio_and_transcribe(video_path: str, output_audio_path: str) -> str:
     """
     Extract audio from video and transcribe to text using Whisper.
     """
     try:
-        # Create temp directory if it doesn't exist
-        temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp")
-        os.makedirs(temp_dir, exist_ok=True)
+        # Get the video filename without extension
+        video_filename = os.path.splitext(os.path.basename(video_path))[0]
 
-        # Create temp audio file path with safe filename
-        safe_filename = "".join(
-            c for c in os.path.basename(video_path) if c.isalnum() or c in (" ._-")
-        )
-        temp_audio_path = os.path.join(temp_dir, f"temp_audio_{safe_filename}.mp3")
+        # Create audio filename with video name
+        audio_filename = f"{video_filename}_audio.wav"
+
+        # Combine with output directory
+        final_audio_path = os.path.join(os.path.dirname(output_audio_path), audio_filename)
 
         print("Extracting audio from video...")
         video = VideoFileClip(video_path)
@@ -77,20 +73,15 @@ def extract_audio_and_transcribe(video_path: str) -> str:
             return ""
 
         # Write audio to temp file
-        video.audio.write_audiofile(temp_audio_path, logger=None)
-
-        # Verify temp file exists
-        if not os.path.exists(temp_audio_path):
-            print(f"Failed to create temporary audio file at {temp_audio_path}")
-            return ""
+        video.audio.write_audiofile(final_audio_path, logger=None)
 
         # Load Whisper model and transcribe
         print("Transcribing audio...")
-        model = whisper.load_model("base", device="cpu")
+        model = whisper.load_model("medium.en", device="cpu")
 
         # Set torch dtype to float32 for CPU
         options = dict(fp16=False)
-        result = model.transcribe(temp_audio_path, **options)
+        result = model.transcribe(final_audio_path, **options)
 
         # Add debug logging
         print(f"Transcription completed. Text length: {len(result['text'])}")
@@ -98,8 +89,7 @@ def extract_audio_and_transcribe(video_path: str) -> str:
 
         # Cleanup
         video.close()
-        if os.path.exists(temp_audio_path):
-            os.remove(temp_audio_path)
+
 
         return result["text"]
 
@@ -153,153 +143,30 @@ def embed_text(text: str) -> Optional[np.ndarray]:
         print(f"Error embedding text: {e}")
         return None
 
-def process_video(file_path):
-    """Process a video file by extracting frames and transcripts."""
+def process_video(video_folder, output_dir, output_audio_path):
+    """Process a video file by extracting transcript."""
     try:
-        print(f"\n{'='*50}")
-        print(f"Starting video processing for: {file_path}")
-        
-        # 1. Extract frames at a lower frame rate
-        print("Step 1: Extracting frames...")
-        frames = extract_frames(file_path, frame_rate=0.5)  # 1 frame every 2 seconds
-        if not frames:
-            print("Warning: No frames were extracted!")
-            return False
-        print(f"✓ Extracted {len(frames)} frames from video")
-        
-        # 2. Process frames in even smaller batches
-        print("\nStep 2: Processing frames...")
-        frame_count = 0
-        batch_size = 3  # Further reduced batch size to 3 frames
-        max_retries = 3  # Number of retries for failed batches
-        
-        for i in range(0, len(frames), batch_size):
-            try:
-                batch_frames = frames[i:i + batch_size]
-                print(f"Processing batch {i//batch_size + 1}/{(len(frames) + batch_size - 1)//batch_size}")
+       for video in os.listdir(video_folder):
+            if video.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):  # Add more video formats if needed
+                video_path = os.path.join(video_folder, video)
+                video_name = os.path.splitext(video)[0]
                 
-                # Prepare batch data
-                batch_embeddings = []
-                batch_documents = []
-                batch_metadatas = []
-                batch_ids = []
+                print(f"\nProcessing video: {video_name}")
                 
-                # Process each frame in the batch
-                for j, (frame, timestamp) in enumerate(batch_frames):
-                    try:
-                        print(f"  Processing frame {i+j+1} at timestamp {timestamp:.2f}s", end='\r')
-                        embedding = embed_frame(frame)
-                        if embedding is not None:
-                            batch_embeddings.append(adjust_embedding_dimension(embedding, FIXED_DIMENSION))
-                            batch_documents.append(f"Frame at {timestamp:.2f}s")
-                            batch_metadatas.append({
-                                "type": "frame",
-                                "file_name": os.path.basename(file_path),
-                                "timestamp": timestamp
-                            })
-                            batch_ids.append(f"{os.path.basename(file_path)}_frame_{timestamp}")
-                    except Exception as e:
-                        print(f"\n  Error processing frame {i+j+1}: {str(e)}")
-                        continue
-                
-                # Add batch to ChromaDB if we have any valid embeddings
-                if batch_embeddings:
-                    for retry in range(max_retries):
-                        try:
-                            print(f"\n  Adding batch of {len(batch_embeddings)} embeddings to ChromaDB...")
-                            collection.add(
-                                embeddings=batch_embeddings,
-                                documents=batch_documents,
-                                metadatas=batch_metadatas,
-                                ids=batch_ids
-                            )
-                            frame_count += len(batch_embeddings)
-                            print(f"  ✓ Successfully added batch {i//batch_size + 1}")
-                            
-                            # Add a longer delay between batches
-                            import time
-                            time.sleep(1.0)  # 1 second delay between batches
-                            break  # Success, exit retry loop
-                            
-                        except Exception as e:
-                            print(f"\n  Error adding batch to ChromaDB (attempt {retry + 1}/{max_retries}): {str(e)}")
-                            if retry < max_retries - 1:  # If not the last retry
-                                print("  Retrying after delay...")
-                                time.sleep(2.0)  # Wait 2 seconds before retry
-                            else:
-                                print("  Failed all retry attempts for this batch")
-                
-            except Exception as e:
-                print(f"\nError processing batch {i//batch_size + 1}: {str(e)}")
-                continue
-        
-        print(f"\n✓ Processed {frame_count} frames")
-        
-        # 3. Process audio transcript in smaller batches
-        print("\nStep 3: Processing audio transcript...")
-        transcript = extract_audio_and_transcribe(file_path)
-        
-        if transcript:
-            chunks = text_splitter.split_text(transcript)
-            chunk_count = 0
-            batch_size = 2  # Reduced batch size for transcript chunks
-            
-            for i in range(0, len(chunks), batch_size):
-                try:
-                    batch_chunks = chunks[i:i + batch_size]
-                    print(f"Processing transcript batch {i//batch_size + 1}/{(len(chunks) + batch_size - 1)//batch_size}")
+                # Extract and transcribe audio
+                transcript = extract_audio_and_transcribe(video_path, output_audio_path)
+                if not transcript:
+                    print("No transcript generated")
+                    return False
                     
-                    # Prepare batch data
-                    batch_embeddings = []
-                    batch_documents = []
-                    batch_metadatas = []
-                    batch_ids = []
-                    
-                    # Process each chunk in the batch
-                    for j, chunk in enumerate(batch_chunks):
-                        try:
-                            embedding = embed_text(chunk)
-                            if embedding is not None:
-                                batch_embeddings.append(adjust_embedding_dimension(embedding, FIXED_DIMENSION))
-                                batch_documents.append(chunk)
-                                batch_metadatas.append({
-                                    "type": "transcript",
-                                    "file_name": os.path.basename(file_path),
-                                    "chunk_index": i + j
-                                })
-                                batch_ids.append(f"{os.path.basename(file_path)}_transcript_{i + j}")
-                        except Exception as e:
-                            print(f"  Error processing chunk {i+j+1}: {str(e)}")
-                            continue
-                    
-                    # Add batch to ChromaDB if we have any valid embeddings
-                    if batch_embeddings:
-                        try:
-                            collection.add(
-                                embeddings=batch_embeddings,
-                                documents=batch_documents,
-                                metadatas=batch_metadatas,
-                                ids=batch_ids
-                            )
-                            chunk_count += len(batch_embeddings)
-                            print(f"  ✓ Added transcript batch {i//batch_size + 1}")
-                            time.sleep(0.5)  # 500ms delay between batches
-                            
-                        except Exception as e:
-                            print(f"  Error adding transcript batch: {str(e)}")
-                            
-                except Exception as e:
-                    print(f"Error processing transcript batch {i//batch_size + 1}: {str(e)}")
-                    continue
-            
-            print(f"✓ Processed {chunk_count} transcript chunks")
-        
-        print(f"\nCompleted processing video: {os.path.basename(file_path)}")
-        print(f"{'='*50}")
-        return True
+                # Save text with video-specific filename
+                text_filename = f"{video_name}_transcript.txt"
+                text_path = os.path.join(output_dir, text_filename)
+                
+                with open(text_path, "w") as file:
+                    file.write(transcript)
+                print(f"Text data saved to {text_path}")
         
     except Exception as e:
         print(f"Error processing video: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
         return False

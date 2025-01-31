@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import hashlib
 from pathlib import Path
+import logging
 
 # local imports
 from utils.custom_styling import apply_custom_css
@@ -47,7 +48,7 @@ def show_admin_features():
         uploaded_files = st.file_uploader(
             "Choose files to add to the knowledge base",
             accept_multiple_files=True,
-            type=['pdf', 'txt', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'mp4', 'mov', 'avi']
+            type=['pdf', 'txt', 'docx']  # Removed unsupported types
         )
         
         if uploaded_files:
@@ -58,14 +59,26 @@ def show_admin_features():
                     with open(file_path, "wb") as f:
                         f.write(file.getbuffer())
                     
-                    # Add to vector DB (you'll need to implement this)
-                    # process_and_store_document(file_path)
-                    res = requests.post(API_CONFIG["DATA_LOADER_URL"], timeout=600)
-                    if res.status_code != 200:
-                        st.error(f"Failed to add knowledge: {res.text}")
-                    else:
-                        st.success("Files processed and added to knowledge base!")
-                    res.raise_for_status()
+                    try:
+                        res = requests.post(API_CONFIG["DATA_LOADER_URL"], timeout=600)
+                        res.raise_for_status()
+                        data = res.json()
+                        
+                        if data["status"] == "success":
+                            st.success(data["response"])
+                            # Display processing stats
+                            stats = data["data"]
+                            st.write(f"Processed: {stats['processed']} files")
+                            if stats['failed'] > 0:
+                                st.warning(f"Failed: {stats['failed']} files")
+                            if stats['unsupported'] > 0:
+                                st.info(f"Unsupported: {stats['unsupported']} files")
+                        else:
+                            st.error(data.get("response", "Unknown error occurred"))
+                            
+                    except Exception as e:
+                        st.error("Failed to process files. Please try again.")
+                        logging.error(f"Error processing files: {str(e)}")
 
 # --- Chat Functions ---
 def initialize_chat_history():
@@ -76,22 +89,13 @@ def initialize_chat_history():
 def generate_response(prompt, history):
     """
     Generate bot response and update conversation history.
-    
-    Args:
-        prompt (str): User input message.
-        history (list): Conversation history.
-    
-    Returns:
-        tuple: (bot_message, updated_history)
     """
     history.append({"role": "user", "content": prompt})
     
-    # Simulate API call for bot response
     try:
         item = {"query": prompt}
         headers = {"Content-Type": "application/json"}
         
-        # Add a loader while waiting for a response
         with st.spinner("Processing your query..."):
             response = requests.post(
                 API_CONFIG["BARISTA_URL"],
@@ -101,10 +105,16 @@ def generate_response(prompt, history):
             )
         
         response.raise_for_status()
-        bot_message = response.json().get("response", "Sorry, I couldn't process that.")
+        response_data = response.json()
+        
+        if response_data["status"] == "success":
+            bot_message = response_data["response"]
+        else:
+            bot_message = response_data.get("response", "Sorry, I couldn't process that.")
     
     except requests.exceptions.RequestException as e:
-        bot_message = f"Error fetching response: {e}"
+        bot_message = "I'm having trouble processing your request. Please try again later."
+        logging.error(f"API request failed: {str(e)}")
     
     history.append({"role": "assistant", "content": bot_message})
     return bot_message, history
