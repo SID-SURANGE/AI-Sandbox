@@ -45,11 +45,11 @@ async def add_knowledge(request: Request, folder_path: str = "data") -> JSONResp
                     processed_files["success"].append(str(file))
                 else:
                     processed_files["failed"].append(str(file))
-            elif file_type in [".jpg", ".jpeg", ".png"]:
-                if process_image(file):
-                    processed_files["success"].append(str(file))
-                else:
-                    processed_files["failed"].append(str(file))
+            # elif file_type in [".jpg", ".jpeg", ".png"]:
+            #     if process_image(file):
+            #         processed_files["success"].append(str(file))
+            #     else:
+            #         processed_files["failed"].append(str(file))
             else:
                 processed_files["unsupported"].append(str(file))
                 logging.info(f"Unsupported file type: {file}")

@@ -4,7 +4,7 @@ from src.retriever import query_db
 
 TOP_RESULTS = 5
 
-def get_contextualized_llm_response(query: str):
+async def get_contextualized_llm_response(query: str):
     try:
         # STEP 1: Query the database and fetch relevant information
         print("\nStarting query...")

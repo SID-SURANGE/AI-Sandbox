@@ -30,7 +30,7 @@ python -m spacy download en_core_web_sm
 
 Create a `.env` file in the project root and add your GitHub token:
 ```
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here (not required for this app, in future can be used for other LLMs)
 ```
 
 ## Usage
