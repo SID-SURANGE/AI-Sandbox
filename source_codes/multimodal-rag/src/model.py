@@ -81,7 +81,7 @@ def run_caption_model(image: Image.Image) -> str:
     Returns:
         str: Generated caption describing the image
     """
-    try:
+    try: 
         client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
         
         # Convert PIL Image to base64
@@ -102,7 +102,7 @@ def run_caption_model(image: Image.Image) -> str:
                 
                 {"role": "user", "content": [
                     {"type": "text", "text": "Please provide a clear and concise description of this image that captures its key visual elements."},
-                    {"type": "image_url", "image_url": f"data:image/png;base64,{img_str}"}
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_str}"}}
                 ]}
             ],
             temperature=0.7,
