@@ -26,7 +26,7 @@ git clone https://github.com/SID-SURANGE/AI-Sandbox.git
 
 ### Navigate to the app directory
 ```bash
-cd AI-Sandbox/source_codes/MM-RAG
+cd AI-Sandbox/source_codes/multimodal-rag
 ```
 
 ### Install dependencies

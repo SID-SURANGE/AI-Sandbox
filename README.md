@@ -3,7 +3,7 @@ My personal AI sandbox for learning, experimenting, and prototyping different AI
 
 ## Projects
 
-### 1. [MM-RAG (Multimodal RAG)](./source_codes/MM-RAG/)
+### 1. [(Multimodal RAG)](./source_codes/multimodal-rag/)
 A barista chatbot built with multimodal retrieval-augmented generation capabilities.
 
 **Features:**
@@ -19,7 +19,7 @@ A barista chatbot built with multimodal retrieval-augmented generation capabilit
 - Vector Database: ChromaDB
 - Image/Text Embeddings: CLIP, SentenceTransformers
 
-### 2. [Chat with GitHub Repo](./source_codes/chat_with_gitrepo/)
+### 2. [Chat with GitHub Repo](./source_codes/chat-with-gitrepo/)
 A Streamlit application that enables conversations with GitHub repositories.
 
 **Features:**
