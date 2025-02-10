@@ -70,6 +70,7 @@ coverage.xml
 
 # Jupyter Notebook
 .ipynb_checkpoints
+notebooks/
 
 # pyenv
 .python-version

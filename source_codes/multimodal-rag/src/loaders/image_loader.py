@@ -3,6 +3,7 @@ from PIL import Image
 import uuid
 from pathlib import Path
 import logging
+import numpy as np  # Import NumPy
 
 # local imports
 from utils.config import collection, image_model, FIXED_DIMENSION
@@ -23,7 +24,7 @@ def process_image(file_path):
         bool: True if successful, False otherwise
     """
     try:
-        print(f"Processing image file: {file_path}")
+        print(f"Processing image file: {file_path}\n")
         
         # Validate file exists
         if not Path(file_path).exists():
@@ -33,23 +34,28 @@ def process_image(file_path):
         try:
             image = Image.open(file_path)
             image.verify()  # Verify it's a valid image
-            image = Image.open(file_path)  # Reopen after verify
+            image = Image.open(file_path)  # Reopen image after verification
         except Exception as e:
             raise ValueError(f"Invalid or corrupted image file: {str(e)}")
 
         # Generate image embedding
         try:
-            embedding = image_model.encode(image)
+            # Convert image to RGB mode if it isn't already
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Use the proper method for CLIP model
+            embedding = image_model.encode(Image.fromarray(np.array(image)))
             adjusted_embedding = adjust_embedding_dimension(embedding, FIXED_DIMENSION)
         except Exception as e:
             raise RuntimeError(f"Failed to generate image embedding: {str(e)}")
 
         # Generate image description
         try:
-            description = run_caption_model(image)
+            description = run_caption_model(image, file_path)
         except Exception as e:
-            logger.warning(f"Failed to generate image caption: {str(e)}")
-            description = ""
+            logger.warning(f"Failed to generate image caption for {file_path}: {str(e)}")
+            description = "No description available"
 
         # Add to ChromaDB
         try:
@@ -61,14 +67,13 @@ def process_image(file_path):
                     "filename": Path(file_path).name,
                     "image_path": str(file_path),
                     "description": description,
-                    "metadata": {
-                        "size": image.size,
-                        "format": image.format,
-                        "mode": image.mode,
-                    }
+                    "size": str(image.size),  # Convert tuple to string
+                    "format": image.format,
+                    "mode": image.mode,
                 }],
                 ids=[f"img_{uuid.uuid4()}"]
             )
+            logger.info(f"Image file '{file_path}' processed and added to ChromaDB.")
             print(f"Image file '{file_path}' processed and added to ChromaDB.")
             return True
 

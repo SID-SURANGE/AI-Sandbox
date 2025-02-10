@@ -16,10 +16,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 MODEL_ID = "hermes-3-llama-3.2-3b"
-CAPTION_MODEL_ID = "hermes-3-llama-3.2-3b"
+CAPTION_MODEL_ID = "llava-v1.5-7b"
 BASE_URL = "http://localhost:1234/v1"
 API_KEY = "lm-studio"
 TEMPERATURE = 0.2
+
+client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
 
 def run_llm(user_query:str, context: str) -> JSONResponse:
     """
@@ -73,7 +75,7 @@ def run_llm(user_query:str, context: str) -> JSONResponse:
         raise HTTPException(status_code=500, detail=f"Error in LLM completion: {str(e)}")
 
 
-def run_caption_model(image: Image.Image) -> str:
+def run_caption_model(image: Image.Image, file_path: str) -> str:
     """
     Generate a descriptive caption for the given PIL Image using LLM.
     Args:
@@ -81,38 +83,38 @@ def run_caption_model(image: Image.Image) -> str:
     Returns:
         str: Generated caption describing the image
     """
-    try: 
-        client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
-        
-        # Convert PIL Image to base64
+    try:
+        # Convert PIL Image to base64 if required by the model
         buffered = BytesIO()
         image.save(buffered, format="PNG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        
+
+        # Truncate the input context if it exceeds the model's maximum context length
+        max_context_length = 4000
+        user_content = f"Describe the image focusing on the objects and their interactions if any. Image data: data:image/png;base64,{img_str}"
+        if len(user_content) > max_context_length:
+            user_content = user_content[:max_context_length]
+
+        # Use the image directly if the model supports it
         completion = client.chat.completions.create(
-            model=MODEL_ID,
+            model=CAPTION_MODEL_ID,
             messages=[
-                {"role": "system", "content": """You are an expert at analyzing images and providing detailed descriptions. 
-                When given an image:
-                1. Describe the main subjects and objects clearly
-                2. Note important visual details (colors, composition, setting)
-                3. Keep descriptions concise yet informative (1-2 sentences)
-                4. Focus on factual observations, avoid subjective interpretations
-                5. Use natural, flowing language suitable for search and retrieval"""},
-                
-                {"role": "user", "content": [
-                    {"type": "text", "text": "Please provide a clear and concise description of this image that captures its key visual elements."},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_str}"}}
-                ]}
+                {"role": "system", "content": """You are an expert caption generator focused on providing descriptive captions that emphasize both the objects identified in the image and any interactions between them. When analyzing an image:
+                1. Identify the main objects present.
+                2. Describe the interactions, actions, or relationships between these objects if any.
+                3. Provide a concise and natural description without technical jargon.
+                4. Ensure the caption directly reflects what is visible in the image."""},
+                {"role": "user", "content": user_content}
             ],
-            temperature=0.7,
+            temperature=0.2,
         )
-        
+
         caption = completion.choices[0].message.content
-        logger.info(f"Generated caption: {caption}")
-        
+        print(f"\nGenerated caption for file {file_path}: {caption}")
+        logger.info(f"\nGenerated caption {file_path}: {caption}")
+
         return caption
-        
+
     except Exception as e:
-        logger.error(f"Error generating image caption: {str(e)}")
+        logger.error(f"\nError generating image caption: {str(e)}")
         return "Error generating image description"

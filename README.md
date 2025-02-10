@@ -36,8 +36,8 @@ A Streamlit application that enables conversations with GitHub repositories.
 - Document Processing: LlamaIndex
 
 ## Documentation
-- [MM-RAG Documentation](./source_codes/MM-RAG/README.md)
-- [Chat with GitHub Documentation](./source_codes/chat_with_gitrepo/readme.md)
+- [MM-RAG Documentation](./source_codes/multimodal-rag/README.md)
+- [Chat with GitHub Documentation](./source_codes/chat-with-gitrepo/readme.md)
 
 ## Prerequisites
 - Python 3.7+

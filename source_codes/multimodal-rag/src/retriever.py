@@ -17,24 +17,21 @@ def query_db(query_text, n_results=10):
 
     # 1. Determine query type and intent
     query_lower = query_text.lower()
-    is_visual_query = any(
-        term in query_lower
-        for term in [
-            "show",
-            "look",
-            "visual",
-            "image",
-            "video",
-            "frame",
-            "picture",
-            "photo",
-            "show me",
-            "show me how to",
-            "show me how to do",
-            "show me how to make",
-            "show me how to make a",
-        ]
-    )
+    visual_keywords = [
+        "show",
+        "look",
+        "visual",
+        "image",
+        "video",
+        "frame",
+        "picture",
+        "photo",
+        "see",
+        "demonstrate",
+        "illustrate"
+    ]
+
+    is_visual_query = any(keyword in query_lower for keyword in visual_keywords)
 
     # 2. Generate query embedding based on type
     if is_visual_query:
@@ -52,6 +49,7 @@ def query_db(query_text, n_results=10):
     )
 
     print(f"\nRaw results count: {len(results['documents'][0])}")
+    print(f'results from chromadb - {results}')
 
     # 4. Process and format results with type-specific handling
     formatted_results = []

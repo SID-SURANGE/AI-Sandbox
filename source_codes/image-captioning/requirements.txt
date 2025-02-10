@@ -1,0 +1,11 @@
+# Core dependencies
+torch>=2.0.0
+transformers>=4.36.0
+Pillow>=10.0.0
+python-dotenv>=1.0.0
+
+# For Llama 3.2 Vision
+together>=0.2.0
+
+# For SmolVLM
+accelerate>=0.25.0  # Required for efficient model loading
