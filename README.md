@@ -1,3 +1,5 @@
+> **Note:** The `dev` branch is the active branch for the latest updates. Please switch to that branch for the most recent code updates.
+
 # AI-Sandbox
 My personal AI sandbox for learning, experimenting, and prototyping different AI models and techniques.
 
