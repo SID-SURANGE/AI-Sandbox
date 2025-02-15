@@ -1,3 +1,8 @@
+
+# AgentForge: AI-Powered Assistant 
+
+AgentForge is an intelligent assistant powered by AI that combines powerful web search capabilities with creative image generation. This application is built using the smolagents framework and Gradio UI.
+
 ---
 title: AgentForge
 emoji: ⚡
@@ -7,17 +12,7 @@ sdk: gradio
 sdk_version: 5.15.0
 app_file: app.py
 pinned: false
-tags:
-- smolagents
-- agent
-- smolagent
-- tool
-- agent-course
 ---
-
-# AgentForge: AI-Powered Assistant 
-
-AgentForge is an intelligent assistant powered by AI that combines powerful web search capabilities with creative image generation. This application is built using the smolagents framework and Gradio UI.
 
 ## Features
 
@@ -81,6 +76,3 @@ git push
   - `visit_webpage.py`: Tool for web page interactions
   - `web_search.py`: Tool for web searching
 
-## License
-
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
