@@ -1,0 +1,9 @@
+gradio
+smolagents
+python-dotenv
+requests
+duckduckgo_search
+pandas
+markdownify
+pyyaml
+smolagents[litellm]
