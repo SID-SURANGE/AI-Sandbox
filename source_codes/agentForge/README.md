@@ -15,8 +15,7 @@ AgentForge is an intelligent assistant powered by AI that combines powerful web 
 1. Clone this repository:
 ```bash
 git clone <your-repo-url>
-cd agentForge
-```
+cd AI-Sandbox/source_codes/agentForge
 
 2. Install dependencies:
 ```bash
