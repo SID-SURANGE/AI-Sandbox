@@ -3,17 +3,6 @@
 
 AgentForge is an intelligent assistant powered by AI that combines powerful web search capabilities with creative image generation. This application is built using the smolagents framework and Gradio UI.
 
----
-title: AgentForge
-emoji: ⚡
-colorFrom: pink
-colorTo: yellow
-sdk: gradio
-sdk_version: 5.15.0
-app_file: app.py
-pinned: false
----
-
 ## Features
 
 - Model Selection: Choose between OpenAI GPT-4 and HuggingFace Llama models
@@ -26,7 +15,7 @@ pinned: false
 1. Clone this repository:
 ```bash
 git clone <your-repo-url>
-cd First_agent_template
+cd agentForge
 ```
 
 2. Install dependencies:
